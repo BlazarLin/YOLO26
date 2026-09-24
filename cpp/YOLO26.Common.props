@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 创建时间：2026-09-24；功能：共享 VS2019 C++17 构建参数；目的：统一 Debug 与 Release 依赖和调试信息。 -->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <OutDir>$(MSBuildThisFileDirectory)..\x64\output\vs2019\$(Configuration)\$(ProjectName)\</OutDir>
+    <IntDir>$(MSBuildThisFileDirectory)..\x64\output\vs2019\obj\$(ProjectName)\$(Configuration)\</IntDir>
+    <CudaIncludeDir Condition="'$(CudaIncludeDir)'==''">C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\include</CudaIncludeDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>WIN32;_CONSOLE;UNICODE;_UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\third_party\onnxruntime_1_16_3\include;$(MSBuildThisFileDirectory)..\third_party\tensorrt\include;$(CudaIncludeDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)..\third_party\onnxruntime_1_16_3\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>onnxruntime.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+</Project>

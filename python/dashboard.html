@@ -1,0 +1,111 @@
+<!-- 创建时间：2026-09-24；功能：展示 YOLO26 打结训练状态；目的：本机浏览器实时查看进度与剩余时间。 -->
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>YOLO26 打结训练看板</title>
+  <style>
+    :root { color-scheme: dark; font-family: "Microsoft YaHei", "Segoe UI", sans-serif; background: #0d1320; color: #e8eef9; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 30px; }
+    main { max-width: 1120px; margin: auto; }
+    header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 26px; }
+    h1 { margin: 0 0 7px; font-size: 30px; letter-spacing: .01em; }
+    .sub { color: #8da2bf; font-size: 14px; }
+    .badge { border: 1px solid #305a4c; background: #15392f; color: #83e8b7; border-radius: 100px; padding: 8px 14px; white-space: nowrap; }
+    .card { background: #172235; border: 1px solid #293a54; border-radius: 16px; padding: 20px; box-shadow: 0 14px 35px #0003; }
+    .hero { margin-bottom: 18px; }
+    .hero-line { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+    .label { color: #9db0cb; font-size: 13px; }
+    .big { font-size: 34px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .progress { height: 16px; margin: 20px 0 11px; border-radius: 100px; background: #2a3850; overflow: hidden; }
+    .progress > div { width: 0; height: 100%; background: linear-gradient(90deg, #35b8ff, #6ce4be); transition: width .7s ease; }
+    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 18px; }
+    .metric { font-size: 25px; font-weight: 700; margin-top: 12px; font-variant-numeric: tabular-nums; }
+    .row { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; }
+    h2 { font-size: 17px; margin: 0 0 15px; }
+    canvas { width: 100%; height: 250px; display: block; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 9px 5px; border-bottom: 1px solid #304159; }
+    th { color: #9db0cb; font-weight: 500; }
+    td { font-variant-numeric: tabular-nums; }
+    .foot { color: #7890ae; font-size: 12px; margin-top: 18px; line-height: 1.7; }
+    .error { color: #ff8c96; }
+    @media (max-width: 760px) { body { padding: 15px; } h1 { font-size: 24px; } .grid { grid-template-columns: repeat(2, 1fr); } .row { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div><h1>YOLO26 训练看板</h1><div class="sub">训练进度、预计剩余时间与验证指标 · 每 2 秒更新</div></div>
+    <div id="state" class="badge">等待训练启动</div>
+  </header>
+  <section class="card hero">
+    <div class="hero-line"><div><div class="label">总体进度</div><div id="progress-text" class="big">0%</div></div><div id="phase" class="sub">准备中</div></div>
+    <div class="progress"><div id="progress-bar"></div></div>
+    <div id="epoch-line" class="sub">Epoch 0/100 · 批次 0/0</div>
+  </section>
+  <section class="grid">
+    <div class="card"><div class="label">预计剩余</div><div id="eta" class="metric">估算中</div></div>
+    <div class="card"><div class="label">已运行</div><div id="elapsed" class="metric">0 分钟</div></div>
+    <div class="card"><div class="label">mAP50</div><div id="map50" class="metric">—</div></div>
+    <div class="card"><div class="label">mAP50–95</div><div id="map5095" class="metric">—</div></div>
+  </section>
+  <section class="row">
+    <div class="card"><h2>验证指标趋势</h2><canvas id="chart"></canvas><div class="sub">青色：mAP50　绿色：mAP50–95</div></div>
+    <div class="card"><h2>最新指标</h2><table><tbody id="metrics"><tr><td>等待第一轮验证</td></tr></tbody></table></div>
+  </section>
+  <div id="error" class="foot"></div>
+  <div id="updated" class="foot">状态文件：training_status.json · 训练记录：runs/&lt;name&gt;/results.csv</div>
+</main>
+<script>
+  const $ = id => document.getElementById(id);
+  const fmtTime = value => {
+    if (value == null) return '估算中';
+    const n = Math.max(0, Math.round(value));
+    const h = Math.floor(n / 3600), m = Math.floor(n % 3600 / 60), s = n % 60;
+    return h ? `${h} 小时 ${m} 分` : m ? `${m} 分 ${s} 秒` : `${s} 秒`;
+  };
+  function metric(metrics, key) {
+    const entry = Object.entries(metrics || {}).find(([name]) => name.includes(key));
+    return entry ? Number(entry[1]).toFixed(3) : '—';
+  }
+  function draw(rows) {
+    const canvas = $('chart'), rect = canvas.getBoundingClientRect(), ratio = devicePixelRatio || 1;
+    canvas.width = Math.max(1, Math.floor(rect.width * ratio));
+    canvas.height = Math.floor(250 * ratio);
+    const ctx = canvas.getContext('2d'); ctx.scale(ratio, ratio);
+    const w = rect.width, h = 250, left = 35, right = 12, top = 15, bottom = 29;
+    ctx.strokeStyle = '#435574'; ctx.fillStyle = '#9db0cb'; ctx.font = '12px Segoe UI';
+    for (let i = 0; i <= 4; i++) { const y = top + (h-top-bottom) * i / 4; ctx.beginPath(); ctx.moveTo(left,y); ctx.lineTo(w-right,y); ctx.stroke(); ctx.fillText((1-i/4).toFixed(2), 2, y+4); }
+    const series = [['metrics/mAP50(B)', '#35b8ff'], ['metrics/mAP50-95(B)', '#6ce4be']];
+    for (const [key, color] of series) {
+      const points = rows.map((r,i) => ({x:left+(w-left-right)*i/Math.max(1,rows.length-1), y:top+(h-top-bottom)*(1-Number(r[key]))})).filter(p => Number.isFinite(p.y));
+      ctx.strokeStyle=color; ctx.lineWidth=2.5; ctx.beginPath(); points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)); ctx.stroke();
+    }
+  }
+  async function refresh() {
+    try {
+      const [statusResponse, historyResponse] = await Promise.all([fetch('/api/status',{cache:'no-store'}),fetch('/api/history',{cache:'no-store'})]);
+      const s = await statusResponse.json(), rows = await historyResponse.json();
+      $('state').textContent = s.state || '等待';
+      $('phase').textContent = s.early_stopped ? '早停完成' : (s.phase || '准备中');
+      const progress = s.state === '已完成' ? 100 : (s.progress_percent || 0);
+      $('progress-text').textContent = `${progress.toFixed(1)}%`;
+      $('progress-bar').style.width = `${progress}%`;
+      $('epoch-line').textContent = `Epoch ${s.epoch || 0}/${s.total_epochs || 100} · 批次 ${s.batch || 0}/${s.batches_per_epoch || 0} · GPU 已预留 ${s.gpu_reserved_mb || 0} MB`;
+      $('eta').textContent = s.state === '已完成' ? '已完成' : fmtTime(s.eta_seconds); $('elapsed').textContent = fmtTime(s.elapsed_seconds || 0);
+      $('map50').textContent = metric(s.metrics, 'mAP50(B)'); $('map5095').textContent = metric(s.metrics, 'mAP50-95(B)');
+      $('updated').textContent = `最近更新：${s.updated_at || '尚未开始'} · 本页面每 2 秒自动刷新`;
+      $('error').textContent = s.error || '';
+      $('error').className = s.error ? 'foot error' : 'foot';
+      const entries = Object.entries(s.metrics || {});
+      $('metrics').innerHTML = entries.length ? entries.map(([name,value])=>`<tr><td>${name.replace('metrics/','')}</td><td>${Number(value).toFixed(4)}</td></tr>`).join('') : '<tr><td>等待第一轮验证</td></tr>';
+      draw(rows);
+    } catch (error) { $('error').textContent = `看板读取失败：${error.message}`; $('error').className='foot error'; }
+  }
+  refresh(); setInterval(refresh, 2000); addEventListener('resize', refresh);
+</script>
+</body>
+</html>

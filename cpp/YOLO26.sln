@@ -1,0 +1,27 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31205.134
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{BC8A1FFA-BEE3-4634-8014-F334798102B3}") = "YoloCppDetect", "YoloCppDetect.vcxproj", "{7AF30F0E-7448-4B5A-8C36-45C595F1E59E}"
+EndProject
+Project("{BC8A1FFA-BEE3-4634-8014-F334798102B3}") = "YoloCppBench", "YoloCppBench.vcxproj", "{65B6AC38-6E25-4F60-AFB2-5EF38D462417}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7AF30F0E-7448-4B5A-8C36-45C595F1E59E}.Debug|x64.ActiveCfg = Debug|x64
+		{7AF30F0E-7448-4B5A-8C36-45C595F1E59E}.Debug|x64.Build.0 = Debug|x64
+		{7AF30F0E-7448-4B5A-8C36-45C595F1E59E}.Release|x64.ActiveCfg = Release|x64
+		{7AF30F0E-7448-4B5A-8C36-45C595F1E59E}.Release|x64.Build.0 = Release|x64
+		{65B6AC38-6E25-4F60-AFB2-5EF38D462417}.Debug|x64.ActiveCfg = Debug|x64
+		{65B6AC38-6E25-4F60-AFB2-5EF38D462417}.Debug|x64.Build.0 = Debug|x64
+		{65B6AC38-6E25-4F60-AFB2-5EF38D462417}.Release|x64.ActiveCfg = Release|x64
+		{65B6AC38-6E25-4F60-AFB2-5EF38D462417}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,9 @@
+# 创建时间：2026-09-23；功能：固定实验依赖；目的：保证导出与测速可复现。
+ultralytics==8.4.160
+numpy==2.5.2
+opencv-python==5.0.0.93
+PyYAML==6.0.3
+onnx==1.23.0
+onnxruntime==1.30.0
+onnxslim==0.1.96
+tensorrt-cu12==10.16.0.72

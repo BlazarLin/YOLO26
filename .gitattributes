@@ -1,0 +1,2 @@
+# 创建时间：2026-09-24；功能：固定源码换行格式；目的：避免 Windows 的 core.autocrlf 改写现有 LF 文件。
+* text=auto eol=lf

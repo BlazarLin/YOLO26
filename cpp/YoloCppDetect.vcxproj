@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 创建时间：2026-09-24；功能：VS2019 完整检测工程；目的：直接编译 CPU ONNX 与 TensorRT 推理。 -->
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64"><Configuration>Debug</Configuration><Platform>x64</Platform></ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64"><Configuration>Release</Configuration><Platform>x64</Platform></ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{7AF30F0E-7448-4B5A-8C36-45C595F1E59E}</ProjectGuid>
+    <RootNamespace>YoloCppDetect</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType><UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset><CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType><UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset><CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="YOLO26.Common.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile><Optimization>Disabled</Optimization><RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary></ClCompile>
+    <Link><AdditionalDependencies>opencv_world455d.lib;%(AdditionalDependencies)</AdditionalDependencies></Link>
+    <PostBuildEvent><Command>copy /Y "$(ProjectDir)..\third_party\opencv\dll\opencv_world455d.dll" "$(OutDir)" &amp;&amp; copy /Y "$(ProjectDir)..\third_party\onnxruntime_1_16_3\dll\onnxruntime.dll" "$(OutDir)" &amp;&amp; copy /Y "$(ProjectDir)..\third_party\onnxruntime_1_16_3\dll\onnxruntime_providers_shared.dll" "$(OutDir)" &amp;&amp; copy /Y "$(ProjectDir)..\third_party\tensorrt\dll\nvinfer_10.dll" "$(OutDir)" &amp;&amp; copy /Y "$(ProjectDir)..\third_party\tensorrt\dll\nvinfer_plugin_10.dll" "$(OutDir)" &amp;&amp; copy /Y "$(ProjectDir)..\third_party\cuda\dll\cudart64_12.dll" "$(OutDir)"</Command></PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile><Optimization>MaxSpeed</Optimization><RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary><FunctionLevelLinking>true</FunctionLevelLinking><IntrinsicFunctions>true</IntrinsicFunctions></ClCompile>
+    <Link><EnableCOMDATFolding>true</EnableCOMDATFolding><OptimizeReferences>true</OptimizeReferences><AdditionalDependencies>opencv_world455.lib;%(AdditionalDependencies)</AdditionalDependencies></Link>
+    <PostBuildEvent><Command>copy /Y "$(ProjectDir)..\third_party\opencv\dll\opencv_world455.dll" "$(OutDir)" &amp;&amp; copy /Y "$(ProjectDir)..\third_party\onnxruntime_1_16_3\dll\onnxruntime.dll" "$(OutDir)" &amp;&amp; copy /Y "$(ProjectDir)..\third_party\onnxruntime_1_16_3\dll\onnxruntime_providers_shared.dll" "$(OutDir)" &amp;&amp; copy /Y "$(ProjectDir)..\third_party\tensorrt\dll\nvinfer_10.dll" "$(OutDir)" &amp;&amp; copy /Y "$(ProjectDir)..\third_party\tensorrt\dll\nvinfer_plugin_10.dll" "$(OutDir)" &amp;&amp; copy /Y "$(ProjectDir)..\third_party\cuda\dll\cudart64_12.dll" "$(OutDir)"</Command></PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup>
+    <ClCompile><AdditionalIncludeDirectories>$(ProjectDir)..\third_party\opencv\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories></ClCompile>
+    <Link><AdditionalLibraryDirectories>$(ProjectDir)..\third_party\opencv\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories></Link>
+  </ItemDefinitionGroup>
+  <ItemGroup><ClCompile Include="src\detect.cpp" /></ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>
