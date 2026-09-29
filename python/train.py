@@ -26,6 +26,20 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--workers", type=int, default=2)
     parser.add_argument("--patience", type=int, default=20)
     parser.add_argument("--device", default="0")
+    parser.add_argument("--optimizer", default="auto")
+    parser.add_argument("--lr0", type=float, default=0.01)
+    parser.add_argument("--mosaic", type=float, default=0.2)
+    parser.add_argument("--scale", type=float, default=0.2)
+    parser.add_argument("--hsv-v", type=float, default=0.05)
+    parser.add_argument("--freeze", type=int, default=0)
+    parser.add_argument("--fliplr", type=float, default=0.0)
+    parser.add_argument("--flipud", type=float, default=0.0)
+    parser.add_argument("--cls", type=float, default=0.5)
+    parser.add_argument("--box", type=float, default=7.5)
+    parser.add_argument("--dfl", type=float, default=1.5,
+                        help="YOLO26 的归一化框距离 L1 损失权重")
+    parser.add_argument("--translate", type=float, default=0.05)
+    parser.add_argument("--degrees", type=float, default=3.0)
     return parser.parse_args()
 
 
@@ -72,8 +86,16 @@ class TrainingMonitor:
         if torch.cuda.is_available():
             self.state["gpu_reserved_mb"] = round(torch.cuda.memory_reserved(0) / 1048576)
         temporary = self.status_path.with_suffix(".json.tmp")
-        temporary.write_text(json.dumps(self.state, ensure_ascii=False, indent=2), encoding="utf-8")
-        os.replace(temporary, self.status_path)
+        payload = json.dumps(self.state, ensure_ascii=False, indent=2)
+        for nAttempt in range(15):
+            try:
+                temporary.write_text(payload, encoding="utf-8")
+                os.replace(temporary, self.status_path)
+                return
+            except PermissionError:
+                # Windows 下看板或安全软件短暂持有状态文件，监控失败不能终止训练。
+                time.sleep(0.02)
+        print(f"[监控] 状态文件暂时被占用，跳过本次刷新：{self.status_path}", flush=True)
 
     def on_train_start(self, trainer) -> None:
         self.state["state"] = "训练中"
@@ -128,7 +150,9 @@ class TrainingMonitor:
 
 def main() -> None:
     args = parse_args()
-    if args.epochs <= 0 or args.batch <= 0 or args.imgsz <= 0 or args.workers < 0:
+    if (args.epochs <= 0 or args.batch <= 0 or args.imgsz <= 0 or args.workers < 0 or
+            args.box <= 0 or args.dfl <= 0 or args.freeze < 0 or
+            not 0 <= args.fliplr <= 1 or not 0 <= args.flipud <= 1):
         raise ValueError("训练参数无效")
     data = args.data.resolve()
     if not data.is_file():
@@ -151,9 +175,12 @@ def main() -> None:
                     device=args.device, workers=args.workers, seed=42, deterministic=True,
                     project=str(output_dir / "runs"), name=args.name, exist_ok=True,
                     patience=args.patience, plots=True, verbose=False,
-                    mosaic=0.2, close_mosaic=10, fliplr=0.0, flipud=0.0,
-                    hsv_h=0.0, hsv_s=0.0, hsv_v=0.05,
-                    degrees=3.0, translate=0.05, scale=0.2)
+                    optimizer=args.optimizer, lr0=args.lr0, freeze=args.freeze,
+                    mosaic=args.mosaic, close_mosaic=10, mixup=0.0, copy_paste=0.0,
+                    fliplr=args.fliplr, flipud=args.flipud, cls=args.cls, box=args.box,
+                    dfl=args.dfl,
+                    hsv_h=0.0, hsv_s=0.0, hsv_v=args.hsv_v,
+                    degrees=args.degrees, translate=args.translate, scale=args.scale)
         print(f"训练输出：{output_dir}", flush=True)
     except Exception as error:
         monitor.state["state"] = "失败"

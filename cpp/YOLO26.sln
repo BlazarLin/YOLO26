@@ -6,6 +6,10 @@ Project("{BC8A1FFA-BEE3-4634-8014-F334798102B3}") = "YoloCppDetect", "YoloCppDet
 EndProject
 Project("{BC8A1FFA-BEE3-4634-8014-F334798102B3}") = "YoloCppBench", "YoloCppBench.vcxproj", "{65B6AC38-6E25-4F60-AFB2-5EF38D462417}"
 EndProject
+Project("{BC8A1FFA-BEE3-4634-8014-F334798102B3}") = "KnotOnnxDetect", "KnotOnnxDetect.vcxproj", "{875F83B1-CEA6-4620-B622-93418732C150}"
+EndProject
+Project("{BC8A1FFA-BEE3-4634-8014-F334798102B3}") = "vt_detect", "vt_detect.vcxproj", "{4EA866A7-E77A-43A8-9545-E71E7A3F411D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -20,6 +24,14 @@ Global
 		{65B6AC38-6E25-4F60-AFB2-5EF38D462417}.Debug|x64.Build.0 = Debug|x64
 		{65B6AC38-6E25-4F60-AFB2-5EF38D462417}.Release|x64.ActiveCfg = Release|x64
 		{65B6AC38-6E25-4F60-AFB2-5EF38D462417}.Release|x64.Build.0 = Release|x64
+		{875F83B1-CEA6-4620-B622-93418732C150}.Debug|x64.ActiveCfg = Debug|x64
+		{875F83B1-CEA6-4620-B622-93418732C150}.Debug|x64.Build.0 = Debug|x64
+		{875F83B1-CEA6-4620-B622-93418732C150}.Release|x64.ActiveCfg = Release|x64
+		{875F83B1-CEA6-4620-B622-93418732C150}.Release|x64.Build.0 = Release|x64
+		{4EA866A7-E77A-43A8-9545-E71E7A3F411D}.Debug|x64.ActiveCfg = Debug|x64
+		{4EA866A7-E77A-43A8-9545-E71E7A3F411D}.Debug|x64.Build.0 = Debug|x64
+		{4EA866A7-E77A-43A8-9545-E71E7A3F411D}.Release|x64.ActiveCfg = Release|x64
+		{4EA866A7-E77A-43A8-9545-E71E7A3F411D}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

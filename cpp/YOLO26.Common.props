@@ -5,6 +5,7 @@
     <OutDir>$(MSBuildThisFileDirectory)..\x64\output\vs2019\$(Configuration)\$(ProjectName)\</OutDir>
     <IntDir>$(MSBuildThisFileDirectory)..\x64\output\vs2019\obj\$(ProjectName)\$(Configuration)\</IntDir>
     <CudaIncludeDir Condition="'$(CudaIncludeDir)'==''">C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\include</CudaIncludeDir>
+    <LinkOnnxRuntime Condition="'$(LinkOnnxRuntime)'==''">true</LinkOnnxRuntime>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
@@ -14,12 +15,12 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>WIN32;_CONSOLE;UNICODE;_UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\third_party\onnxruntime_1_16_3\include;$(MSBuildThisFileDirectory)..\third_party\tensorrt\include;$(CudaIncludeDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\third_party\onnxruntime_1_15_1\include;$(MSBuildThisFileDirectory)..\third_party\tensorrt\include;$(CudaIncludeDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)..\third_party\onnxruntime_1_16_3\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>onnxruntime.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)..\third_party\onnxruntime_1_15_1\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies Condition="'$(LinkOnnxRuntime)'=='true'">onnxruntime.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
 </Project>

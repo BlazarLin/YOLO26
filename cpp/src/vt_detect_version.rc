@@ -1,0 +1,31 @@
+// 创建时间：2026-09-29；功能：设置 vt_detect.dll 的 Windows 文件版本；目的：便于现场核对部署版本。
+#pragma code_page(65001)
+#include <winver.h>
+#include "../include/vt_detect_version.h"
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION VT_DETECT_FILE_VERSION
+ PRODUCTVERSION VT_DETECT_FILE_VERSION
+ FILEFLAGSMASK 0x3fL
+ FILEFLAGS 0x0L
+ FILEOS VOS__WINDOWS32
+ FILETYPE VFT_DLL
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "080404B0"
+        BEGIN
+            VALUE "FileDescription", "工业视觉检测动态库"
+            VALUE "FileVersion", VT_DETECT_FILE_VERSION_TEXT
+            VALUE "InternalName", "vt_detect"
+            VALUE "OriginalFilename", "vt_detect.dll"
+            VALUE "ProductName", "vt_detect"
+            VALUE "ProductVersion", VT_DETECT_VERSION_TEXT
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0804, 1200
+    END
+END
