@@ -11,6 +11,8 @@
 #include <cctype>
 #include <cmath>
 #include <cstdio>
+#include <ctime>
+#include <cwchar>
 #include <filesystem>
 #include <fstream>
 #include <numeric>
@@ -38,6 +40,50 @@ fs::path executableDirectory() {
         throw std::runtime_error("Cannot resolve executable directory");
     }
     return fs::path(buffer.data()).parent_path();
+}
+
+fs::path repositoryDirectory() {
+    fs::path directory = executableDirectory();
+    while (!directory.empty()) {
+        if (fs::is_regular_file(directory / L"cpp" / L"YOLO26.sln")) return directory;
+        const fs::path parent = directory.parent_path();
+        if (parent == directory) break;
+        directory = parent;
+    }
+    throw std::runtime_error("Cannot locate repository from executable directory");
+}
+
+fs::path defaultModel(const fs::path& repository) {
+    for (const auto& relative : {
+             fs::path(L"models/v6_knot.onnx"),
+             fs::path(L"x64/output/20260929_085458/deploy/v6_knot.onnx"),
+             fs::path(L"x64/output/20260928_170714/models/v6_knot.onnx")}) {
+        const fs::path candidate = repository / relative;
+        if (fs::is_regular_file(candidate)) return candidate;
+    }
+    throw std::runtime_error("Default model is missing; pass model.onnx explicitly");
+}
+
+fs::path defaultImages(const fs::path& repository) {
+    for (const auto& relative : {
+             fs::path(L"delivery/vt_detect/sample/input"),
+             fs::path(L"x64/output/20260929_081042/中文路径/输入"),
+             fs::path(L"x64/output/20260928_113627/expanded/dataset/images/val")}) {
+        const fs::path candidate = repository / relative;
+        if (fs::is_directory(candidate)) return candidate;
+    }
+    throw std::runtime_error("Default images are missing; pass image_dir explicitly");
+}
+
+fs::path localTimestamp() {
+    const std::time_t now = std::time(nullptr);
+    std::tm local = {};
+    wchar_t buffer[32] = {};
+    if (localtime_s(&local, &now) != 0 ||
+        std::wcsftime(buffer, std::size(buffer), L"%Y%m%d_%H%M%S", &local) == 0) {
+        throw std::runtime_error("Cannot create local timestamp");
+    }
+    return fs::path(buffer);
 }
 
 struct Api {
@@ -117,8 +163,8 @@ cv::Mat readImage(const fs::path& path) {
     return image;
 }
 
-void writeImage(const cv::Mat& image, const VTDetectBox* boxes, int count,
-                const fs::path& target) {
+cv::Mat writeImage(const cv::Mat& image, const VTDetectBox* boxes, int count,
+                   const fs::path& target) {
     cv::Mat output = image.clone();
     for (int index = 0; index < count; ++index) {
         const auto& box = boxes[index];
@@ -144,6 +190,7 @@ void writeImage(const cv::Mat& image, const VTDetectBox* boxes, int count,
     stream.write(reinterpret_cast<const char*>(encoded.data()),
                  static_cast<std::streamsize>(encoded.size()));
     if (!stream) throw std::runtime_error("Cannot save result image");
+    return output;
 }
 
 bool isImage(const fs::path& path) {
@@ -164,7 +211,7 @@ std::string csvCell(const std::string& value) {
 }
 
 void run(const fs::path& modelPath, const fs::path& imageRoot,
-         const fs::path& outputRoot, int threads) {
+         const fs::path& outputRoot, int threads, bool preview) {
     if (!fs::is_regular_file(modelPath) || !fs::is_directory(imageRoot)) {
         throw std::runtime_error("Model or image directory does not exist");
     }
@@ -218,6 +265,7 @@ void run(const fs::path& modelPath, const fs::path& imageRoot,
         const int32_t boxCount = result->box_count;
         const VTDetectBox* boxes = result->boxes;
         inferenceTimes.push_back(result->inference_ms);
+        printf("infer time: %.4f ms\n", result->inference_ms);
         const std::string split = csvCell(path.parent_path().filename().u8string());
         const std::string file = csvCell(path.filename().u8string());
         const double readMs = readAt - started;
@@ -234,8 +282,25 @@ void run(const fs::path& modelPath, const fs::path& imageRoot,
                     << result->postprocess_ms << '\n';
             }
         }
-        writeImage(image, boxes, boxCount, outputRoot / "overlays" /
-                   path.parent_path().filename() / (path.stem().wstring() + L".jpg"));
+        const fs::path overlayPath = outputRoot / "overlays" /
+            path.parent_path().filename() / (path.stem().wstring() + L".jpg");
+        const cv::Mat overlay = writeImage(image, boxes, boxCount, overlayPath);
+        if (preview) {
+            printf("overlay=%s\n", overlayPath.u8string().c_str());
+            if (IsDebuggerPresent()) {
+                // 仅无参 F5 调试时等待按键，避免批量命令行被预览窗口阻塞。
+                try {
+                    std::string str_text = "infertime:"+ std::to_string(result->preprocess_ms) + "|" + std::to_string(result->inference_ms) + "|" + std::to_string(result->postprocess_ms);
+                    cv::putText(overlay, str_text, { 20,200 }, cv::HersheyFonts::FONT_HERSHEY_SIMPLEX, 1, { 128,255,0 });
+                    cv::imshow("vt_detect preview - press any key", overlay);
+
+                    cv::waitKey(0);
+                    cv::destroyWindow("vt_detect preview - press any key");
+                } catch (const cv::Exception& error) {
+                    fprintf(stderr, "Preview unavailable: %s\n", error.what());
+                }
+            }
+        }
         ++imageCount;
         if (imageCount % 20 == 0 || imageCount == images.size()) {
             printf("[进度] %zu/%zu\n", imageCount, images.size());
@@ -250,6 +315,7 @@ void run(const fs::path& modelPath, const fs::path& imageRoot,
     api.destroy(detector.value);
     detector.value = nullptr;
     printf("VTDetect_Destroy done\n");
+    printf("result_dir=%s\n", outputRoot.u8string().c_str());
 }
 
 }  // namespace
@@ -257,13 +323,21 @@ void run(const fs::path& modelPath, const fs::path& imageRoot,
 int wmain(int argc, wchar_t** argv) {
     SetConsoleOutputCP(CP_UTF8);
     try {
+        if (argc == 1) {
+            // 无参模式用于 VS2019 F5：使用已验证的单图和默认建模参数。
+            const fs::path repository = repositoryDirectory();
+            const fs::path output = repository / L"x64" / L"output" /
+                localTimestamp() / L"vs_debug";
+            run(defaultModel(repository), defaultImages(repository), output, 0, true);
+            return 0;
+        }
         if (argc != 4 && argc != 5) {
             fprintf(stderr, "Usage: KnotOnnxDetect model.onnx image_dir output_dir [cpu_threads]\n");
             return 2;
         }
         const int threads = argc == 5 ? std::stoi(argv[4]) : 0;
         if (threads < 0) throw std::runtime_error("CPU threads must be positive when specified");
-        run(argv[1], argv[2], argv[3], threads);
+        run(argv[1], argv[2], argv[3], threads, false);
         return 0;
     } catch (const std::exception& error) {
         fprintf(stderr, "Error: %s\n", error.what());

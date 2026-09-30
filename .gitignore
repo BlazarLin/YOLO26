@@ -39,3 +39,6 @@ x64/
 weights/
 third_party/*
 !third_party/README.md
+
+# 第三方交付包保留在本机的大型 OpenCV 头文件。
+delivery/vt_detect/include/opencv2/

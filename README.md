@@ -98,6 +98,8 @@ $newRun = "x64\output\$stamp"
 
 打结模型作为 `vt_detect.dll` 的首个检测模块推理，`KnotOnnxDetect.exe` 通过 `LoadLibraryExW` 和 `GetProcAddress` 查找导出函数，不链接 ONNX Runtime 导入库。两个工程均包含在解决方案中；构建 `KnotOnnxDetect` 时也会构建 DLL。部署时将 `vt_detect.dll`、ONNX Runtime 1.15.1 的 `onnxruntime.dll` 与 `onnxruntime_providers_shared.dll`、OpenCV 4.5.5 的 `opencv_world455.dll` 放在调用程序旁，并提供模型文件。Debug 配置使用 `opencv_world455d.dll`。部署文件由本机 `third_party/` 生成，不纳入 Git。
 
+当前可直接交付的完整目录为 [`delivery/vt_detect/`](delivery/vt_detect/README.md)，包含公共头文件与 OpenCV 头文件、模型、输入及叠框样图，以及按 Debug/Release 分开的 lib、dll、PDB 和可运行示例。仓库内的固定模型路径为 `models/v6_knot.onnx`。模型、样图和第三方二进制按 `.gitignore` 保留在本机，不随普通 Git 提交传播。
+
 公共接口见 [`cpp/include/vt_detect_api.h`](cpp/include/vt_detect_api.h)，动态加载和显式 `Destroy` 示例见 [`cpp/src/knot_onnx.cpp`](cpp/src/knot_onnx.cpp)。加载后先通过 `VTDetect_GetAbiVersion` 核对 ABI 版本 1；`VTDetect_Create(modelPath)` 只需 UTF-16 模型路径，默认 CPU 4 线程、置信度 0.25、NMS IoU 0.5、最多 100 框。需要调整这些值时使用可选的 `VTDetect_CreateEx`。`VTDetect_Detect(handle, &image)` 直接接收 `CV_8UC3` 的 `cv::Mat`，DLL 读取尺寸和行跨度并返回内部持有的框与分段耗时；返回空指针时使用 `VTDetect_LastError` 查询 UTF-8 错误。结果在同一句柄下次检测或 `VTDetect_Destroy` 前有效，每个工作线程应创建自己的句柄。调用端可按以下顺序使用动态加载得到的函数指针：
 
 ```cpp
@@ -109,6 +111,8 @@ handle = nullptr;
 ```
 
 `api` 的 `LoadLibraryExW`、`GetProcAddress`、版本校验和异常路径释放见上述完整示例。当前软件版本为 `1.0.0`，Windows DLL 文件版本为 `1.0.0.0`。这次通用接口替代了旧的 `KnotOnnx_*` 导出，旧调用程序需按新头文件重新编译。`cv::Mat` 跨 DLL 传递要求调用端与 DLL 使用相同的 OpenCV 4.5.5、x64 和兼容的 MSVC 运行库；当前仅支持动态 FP32、单类别 `[1,5,anchors]` 输出模型，后续模型类型需要在 DLL 中实现对应解码。
+
+VS2019 单图调试：将 `KnotOnnxDetect` 设为启动项目，选择 `Debug|x64` 后按 F5，无需填写命令行参数。程序从 EXE 位置定位仓库，优先使用仓库 `models/v6_knot.onnx` 和 `delivery/vt_detect/sample/input` 中的样本；默认调用 `VTDetect_Create`，预热 10 次，在调试器下逐张显示叠框图并等待按键，随后把图片与 `predictions.csv` 保存到 `x64/output/<本地时间戳>/vs_debug/`。直接双击或无调试器运行也会保存结果，但不会等待预览窗口。移机后若本机样本不存在，在项目属性的“调试→命令参数”中传入 `model.onnx image_dir output_dir [cpu_threads]`；省略 `cpu_threads` 仍使用 DLL 默认参数。
 
 完整检测命令：
 
